@@ -230,7 +230,34 @@ function buildTraits(c){
     }
 
     if(!starDesc){
-      starDesc = ms ? ms+'入'+p.name+'，格局需结合庙旺与四化综观。' : GONGZHI[p.name] || '';
+      var generic = '';
+      if(ms.indexOf('紫微')>=0) generic='紫微为帝星，主人有领导气质，自尊心强。';
+      else if(ms.indexOf('天机')>=0) generic='天机为智慧星，主人聪明善变，宜策划、技术。';
+      else if(ms.indexOf('太阳')>=0) generic='太阳为贵星，主人光明磊落，宜公职、服务。';
+      else if(ms.indexOf('武曲')>=0) generic='武曲为财星，主人对金钱敏锐，宜技术、金融、武职。';
+      else if(ms.indexOf('天同')>=0) generic='天同为福星，主人随和享福，宜稳定工作。';
+      else if(ms.indexOf('廉贞')>=0) generic='廉贞为次桃花星，主人魅力十足，也易有感情波折。';
+      else if(ms.indexOf('天府')>=0) generic='天府为库星，主人保守稳健，善于守成。';
+      else if(ms.indexOf('太阴')>=0) generic='太阴为财富星，主人细腻敏感，宜文职、财务。';
+      else if(ms.indexOf('贪狼')>=0) generic='贪狼为欲望星，主人多才多艺，也易有贪念。';
+      else if(ms.indexOf('巨门')>=0) generic='巨门为暗星，主人口才了得，也易有口舌是非。';
+      else if(ms.indexOf('天相')>=0) generic='天相为印星，主人公正谨慎，宜辅佐性工作。';
+      else if(ms.indexOf('天梁')>=0) generic='天梁为荫星，主人老成持重，宜医药、法律。';
+      else if(ms.indexOf('七杀')>=0) generic='七杀为将星，主人刚毅果决，宜武职、创业。';
+      else if(ms.indexOf('破军')>=0) generic='破军为耗星，主人好变好破，宜开创性工作。';
+      else if(ms.indexOf('文昌')>=0) generic='文昌为文曲星，主人聪明有才华，宜文学、考试。';
+      else if(ms.indexOf('文曲')>=0) generic='文曲为才艺星，主人多才多艺，宜艺术、文学。';
+      else if(ms.indexOf('左辅')>=0 || ms.indexOf('右弼')>=0) generic='辅弼为助力星，主人得贵人相助，人际关系佳。';
+      else if(ms.indexOf('天魁')>=0 || ms.indexOf('天钺')>=0) generic='魁钺为贵人星，主人易得长辈、贵人提拔。';
+      else if(ms.indexOf('擎羊')>=0) generic='擎羊为刑克之星，主人性格刚烈，易有冲突。';
+      else if(ms.indexOf('陀罗')>=0) generic='陀罗为暗星，主人易拖延、纠结，需防暗算。';
+      else if(ms.indexOf('火星')>=0 || ms.indexOf('铃星')>=0) generic='火铃为煞星，主人性格急躁，易有突发变化。';
+      else if(ms.indexOf('地空')>=0 || ms.indexOf('地劫')>=0) generic='空劫为耗空之星，主人易有不切实际想法，需防破财。';
+      else if(ms.indexOf('天马')>=0) generic='天马为动星，主人活动力强，宜动不宜静。';
+      else if(ms.indexOf('红鸾')>=0 || ms.indexOf('天喜')>=0) generic='红鸾天喜为桃花喜庆之星，主人人缘佳，易有喜事。';
+      else if(ms) generic=ms+'入'+p.name+'，须看庙旺与四化合参。';
+      else generic = GONGZHI[p.name] || '';
+      starDesc = generic;
     }
 
     t[p.name] = starDesc + (parts.length ? ' 标记：' + parts.join('、') + '。' : '');
