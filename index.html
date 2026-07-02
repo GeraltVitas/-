@@ -204,6 +204,9 @@ function buildTraits(c){
     } else if(p.name==('交友')){
       if(ms.indexOf('天梁')>=0) starDesc='天梁坐交友，朋友中有长者贵人，可得助力。';
       else if(ms.indexOf('巨门')>=0) starDesc='巨门坐交友，朋友间易有口舌是非，慎选朋友。';
+      else if(ms.indexOf('天同')>=0) starDesc='天同坐交友，朋友关系和谐，但助力有限。';
+      else if(ms.indexOf('太阳')>=0) starDesc='太阳坐交友，朋友中多光明磊落之人，可得贵人相助。';
+      else if(ms.indexOf('太阴')>=0) starDesc='太阴坐交友，朋友中多细腻温柔之人，关系较亲密。';
       else starDesc=ms+'坐交友，人际网络需结合四化判断。';
     } else if(p.name==='疾厄'){
       if(ms.indexOf('巨门')>=0) starDesc='巨门坐疾厄，主暗疾、口舌、情绪。注意甲状腺、肠胃。';
