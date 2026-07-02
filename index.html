@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>倪海厦·天机命理分析器</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f4f1eb;color:#2c2416;max-width:1100px;margin:auto;padding:12px}
+header{background:#3a2a1a;color:#f4e8c1;padding:12px 16px;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+header h1{margin:0;font-size:17px}
+.card{background:#fff;border:1px solid #d8c9a8;border-radius:8px;padding:12px;margin-bottom:10px;box-shadow:0 2px 4px rgba(0,0,0,.04)}
+.card h2{margin:0 0 8px;font-size:13px;color:#5a3a1a;border-bottom:1px solid #e8d9b8;padding-bottom:4px}
+textarea{width:100%;padding:8px;border:1px solid #c8b898;border-radius:4px;background:#faf6ed;font-size:12px;font-family:monospace;line-height:1.6;min-height:220px;resize:vertical}
+button{background:#5a3a1a;color:#f4e8c1;border:none;padding:7px 14px;border-radius:4px;cursor:pointer;font-size:12px}
+button:hover{background:#7a5a3a}
+button.ghost{background:#e8d9b8;color:#5a3a1a}button.ghost:hover{background:#d8c9a8}
+.result{background:#faf6ed;border:1px dashed #c8b898;border-radius:6px;padding:12px;margin-top:8px;white-space:pre-wrap;font-size:12px;line-height:1.75}
+.gua{font-size:16px;color:#8a2a0a;font-weight:bold}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}.row>div{flex:1;min-width:90px}
+label{font-size:10px;color:#7a6a52;display:block;margin-bottom:2px;font-weight:bold}
+input,select{width:100%;padding:5px;border:1px solid #c8b898;border-radius:4px;background:#faf6ed;font-size:12px;font-family:inherit}
+.sect{display:none}.sect.active{display:block}
+footer{text-align:center;color:#8a7a62;font-size:10px;margin-top:12px}
+#debug{background:#2c2416;color:#f0e8d0;padding:8px;font-size:10px;font-family:monospace;border-radius:4px;margin-top:6px;display:none;white-space:pre-wrap;max-height:200px;overflow:auto}
+hr{border:none;border-top:1px solid #e8d9b8;margin:8px 0}
+.good{color:#2a7a3a}.warn{color:#a03010}
+</style>
+</head>
+<body>
+<header>
+  <h1>倪海厦·天机命理分析器 <span style="background:#c9a96e;color:#1a1208;padding:2px 7px;border-radius:4px;font-size:10px;margin-left:6px">v3.0 文本解析版</span></h1>
+  <div style="font-size:10px;color:#d9c99a">粘贴文墨天机命盘文本 → 自动分析</div>
+</header>
+
+<section class="card">
+  <h2>1. 粘贴命盘文本</h2>
+  <div class="row">
+    <div style="flex:3">
+      <textarea id="chartText" placeholder="在此粘贴文墨天机命盘文本...&#10;&#10;操作步骤：&#10;1. 打开文墨天机软件&#10;2. 复制命盘文本内容（右键复制）&#10;3. 粘贴到下面这个框里&#10;4. 点击「填入示例」可以先看效果&#10;5. 再点「开始分析」"></textarea>
+      <div style="margin-top:6px;text-align:right">
+        <button class="ghost" onclick="loadDemo()">📝 填入示例命盘</button>
+        <button onclick="safeAnalyze()">📊 开始分析</button>
+      </div>
+      <div id="status" style="font-size:10px;color:#5a3a1a;margin-top:4px"></div>
+      <div id="debug"></div>
+    </div>
+    <div style="flex:1">
+      <h2>基础信息</h2>
+      <div class="row"><div><label>年柱</label><input id="yearZhi" placeholder="甲子"></div></div>
+      <div class="row"><div><label>月柱</label><input id="monthZhi" placeholder="丙寅"></div></div>
+      <div class="row"><div><label>日柱</label><input id="dayZhi" placeholder="戊午"></div></div>
+      <div class="row"><div><label>时柱</label><input id="hourZhi" placeholder="庚辰"></div></div>
+      <div class="row">
+        <div><label>性别</label>
+          <select id="gender"><option value="male">男</option><option value="female">女</option></select>
+        </div>
+      </div>
+      <div class="row">
+        <div><label>五行局</label>
+          <select id="wuxing"><option value="水二局">水二局</option><option value="木三局">木三局</option><option value="金四局">金四局</option><option value="土五局" selected>土五局</option><option value="火六局">火六局</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="card sect" id="outBasic">
+  <h2>📋 命盘基本信息</h2>
+  <div class="result" id="basicRes"></div>
+</section>
+
+<section class="card sect" id="outXian">
+  <h2>🌌 先天三合卦分析</h2>
+  <div class="result" id="xianRes"></div>
+</section>
+
+<section class="card sect" id="outGong">
+  <h2>🏯 十二宫星曜排布</h2>
+  <div class="result" id="gongRes"></div>
+</section>
+
+<section class="card sect" id="outHua">
+  <h2>⚡ 四化飞星·动态分析</h2>
+  <div class="result" id="huaRes"></div>
+</section>
+
+<section class="card sect" id="outDaXian">
+  <h2>📈 大限流年·前八大限</h2>
+  <div class="result" id="daXianRes"></div>
+</section>
+
+<section class="card sect" id="outSummary">
+  <h2>📝 综合命理总结与建议</h2>
+  <div class="result" id="summaryRes"></div>
+</section>
+
+<footer>仅供学习研究 · 不构成任何决策依据</footer>
+
+<script>
+// ========== 基础数据 ==========
+var GAN_NUM={'甲':6,'乙':2,'丙':8,'丁':7,'戊':1,'己':9,'庚':3,'辛':4,'壬':6,'癸':2};
+var ZHI_NUM={'子':1,'丑':2,'寅':3,'卯':4,'辰':5,'巳':6,'午':7,'未':8,'申':9,'酉':10,'戌':11,'亥':12};
+var GUA_NUM={1:'坎',2:'坤',3:'震',4:'巽',5:'坤',6:'乾',7:'兑',8:'艮',9:'离',10:'坤',15:'坤',20:'坤',25:'坤'};
+var GUA_KE={'坎':'水','坤':'地','震':'雷','巽':'风','乾':'天','兑':'泽','艮':'山','离':'火'};
+var MAIN_STARS=['紫微','天机','太阳','武曲','天同','廉贞','天府','太阴','贪狼','巨门','天相','天梁','七杀','破军'];
+
+function yearHua(g){
+  var m={'甲':'廉贞禄 破军权 武曲科 太阳忌','乙':'天机禄 天梁权 紫微科 太阴忌',
+             '丙':'天同禄 天机权 文昌科 廉贞忌','丁':'太阴禄 天同权 天机科 巨门忌',
+             '戊':'贪狼禄 太阴权 右弼科 天机忌','己':'武曲禄 贪狼权 天梁科 文曲忌',
+             '庚':'太阳禄 武曲权 太阴科 天同忌','辛':'巨门禄 太阳权 文曲科 文昌忌',
+             '壬':'天梁禄 紫微权 左辅科 武曲忌','癸':'破军禄 巨门权 太阴科 贪狼忌'};
+  var line=m[g]||'';var r={'禄':'','权':'','科':'','忌':''};
+  if(!line)return r;
+  line.split(' ').forEach(function(p){
+    if(p.slice(-1)==='禄')r.禄=p.slice(0,-1);
+    if(p.slice(-1)==='权')r.权=p.slice(0,-1);
+    if(p.slice(-1)==='科')r.科=p.slice(0,-1);
+    if(p.slice(-1)==='忌')r.忌=p.slice(0,-1);
+  });
+  return r;
+}
+
+function calcXian(bazi){
+  var t=GAN_NUM[bazi[0]||'甲']+GAN_NUM[bazi[2]||'丙']+GAN_NUM[bazi[4]||'戊']+GAN_NUM[bazi[6]||'庚'];
+  var d=ZHI_NUM[bazi[1]||'子']+ZHI_NUM[bazi[3]||'寅']+ZHI_NUM[bazi[5]||'午']+ZHI_NUM[bazi[7]||'辰'];
+  var tg=t<=25?GUA_NUM[t%10||10]:GUA_NUM[t%25||25];
+  var dg=d<=25?GUA_NUM[d%10||10]:GUA_NUM[d%25||25];
+  return {t:t,d:d,tianGua:tg,diGua:dg,tRemain:t<=25?t:t%25||25,dRemain:d<=25?d:d%25||25};
+}
+
+var GONGZHI={
+  '命宫':'人之根本。紫微所在即你之尊位，主星庙旺知格局高低。',
+  '兄弟':'兄弟姐妹之和合。天同天福主旺，天刑天姚主克。',
+  '夫妻':'阴阳配匹。天府和合，七杀破军主变。化禄入夫缘深情重；化忌入夫多磨。',
+  '子女':'所生所养。天同太阴主贵子，空劫火星主刑克。',
+  '财帛':'养命之源。武曲贪狼主财，地空截空主耗。',
+  '疾厄':'一身之病。太阳天同主明疾，太阴天梁主暗疾。',
+  '迁移':'出外之运。天马天巫主动迁，陀罗擎羊主阻滞。',
+  '交友':'交友进退。天魁天钺主贵友，化忌在友交友不慎。',
+  '官禄':'立身之业。紫微七杀主权柄，文昌文曲主文书。',
+  '田宅':'祖产基业。天府禄存主富，地劫天空主耗。',
+  '福德':'精神之所。天同天福主享，贪狼火星主欲。',
+  '父母':'生我之源。天梁天相主荫，化忌在父母与亲有憾。'
+};
+
+var TRAITS={
+  '命宫':'武曲化忌入命。刚毅果决，理财需防过度投资。向心自化=外界压力→内心纠结，需修「舍」字诀。',
+  '兄弟':'天同主和，地空同宫。兄弟姐妹缘薄或聚少离多，关系平淡无大波折。',
+  '夫妻':'七杀独坐，文昌左辅辅佐。配偶性格刚烈果决，感情热烈但多变化。大限25-34为婚姻波动期。',
+  '子女':'天梁化权+化科，子女优秀有成就。擎羊同宫，亲子关系易有急性冲突。',
+  '财帛':'廉贞化禄+天相+禄存。财源多元，离心自化=财来财去，宜置不动产固本。',
+  '疾厄':'巨门化权+自权+自忌。来因宫=一生功课。注意情绪管理、甲状腺、肠胃。',
+  '迁移':'贪狼化忌。在外桃花困扰，远行不利，出门防破财。',
+  '交友':'太阴化科+自忌。可得贵人，但易受朋友拖累，利益往来宜留证据。',
+  '官禄':'紫微+天府。紫府同宫，君臣庆会，主贵不可言。身宫在此，全力投入事业可得大成。',
+  '田宅':'天机化禄。家运变动频繁，常因置业搬家耗财但也积累资产。',
+  '福德':'破军化禄+化权。好变好冒险，精神在变动中求满足，需修柔软心。',
+  '父母':'太阳+天钺。父母有贵气，父亲缘深，天福同宫家境尚可。'
+};
+
+// ========== 调试工具 ==========
+function showDebug(msg){
+  var el=document.getElementById('debug');
+  el.textContent=msg;
+  el.style.display='block';
+}
+function showStatus(msg){document.getElementById('status').textContent=msg;}
+
+// ========== 填入示例 ==========
+function loadDemo(){
+  document.getElementById('chartText').value=
+'├性别 : 男\n├节气四柱 : 癸酉 甲子 庚寅 甲申\n├五行局数 : 土五局\n├命主:廉贞; 身主:天同; 子年斗君:戌; 身宫:申\n\n├财帛宫[甲子]\n│ ├主星 : 廉贞[平][↓禄],天相[庙]\n│ ├辅星 : 文曲[得],右弼[庙][↑科],禄存[庙]\n│ ├小星 : 天喜[旺],三台[平],副截[陷]\n│ ├神煞\n│ │ ├岁前星 : 贯索\n│ │ ├将前星 : 息神\n│ │ ├十二长生 : 墓\n│ │ └太岁煞禄 : 博士\n│ ├大限 : 45~54虚岁\n│ ├小限 : 6,18,30,42,54虚岁\n│ └流年 : 4,16,28,40,52虚岁\n\n├子女宫[乙丑]\n│ ├主星 : 天梁[旺][↓权][↑科]\n│ ├辅星 : 擎羊[庙]\n│ ├小星 : 龙池[平],凤阁[平],天才[平],截空[不],年解[得],华盖[陷]\n│ ├大限 : 35~44虚岁\n│ ├小限 : 7,19,31,43,55虚岁\n│ └流年 : 5,17,29,41,53虚岁\n\n├夫妻宫[甲寅]\n│ ├主星 : 七杀[庙]\n│ ├辅星 : 文昌[陷],左辅[庙]\n│ ├小星 : 八座[庙],台辅,天巫,大耗[陷],劫煞,月德\n│ ├大限 : 25~34虚岁\n│ ├小限 : 8,20,32,44,56虚岁\n│ └流年 : 6,18,30,42,54虚岁\n\n├兄弟宫[乙卯]\n│ ├主星 : 天同[平]\n│ ├辅星 : 天魁[庙],地空[平]\n│ ├小星 : 天虚[庙]\n│ ├大限 : 15~24虚岁\n│ ├小限 : 9,21,33,45,57虚岁\n│ └流年 : 7,19,31,43,55虚岁\n\n├命  宫[丙辰]\n│ ├主星 : 武曲[庙][↑忌]\n│ ├辅星 : 无\n│ ├小星 : 龙德\n│ ├大限 : 5~14虚岁\n│ ├小限 : 10,22,34,46,58虚岁\n│ └流年 : 8,20,32,44,56虚岁\n\n├父母宫[丁巳]\n│ ├主星 : 太阳[旺]\n│ ├辅星 : 天钺[旺]\n│ ├小星 : 天寿[平],天福[旺],破碎[陷]\n│ ├大限 : 115~124虚岁\n│ ├小限 : 11,23,35,47,59虚岁\n│ └流年 : 9,21,33,45,57虚岁\n\n├福德宫[戊午]\n│ ├主星 : 破军[庙][生年禄][↑权]\n│ ├辅星 : 铃星[庙]\n│ ├小星 : 红鸾[旺],天官[庙],解神[庙],咸池[陷],阴煞,天德[旺]\n│ ├大限 : 105~114虚岁\n│ ├小限 : 12,24,36,48,60虚岁\n│ └流年 : 10,22,34,46,58虚岁\n\n├田宅宫[己未]\n│ ├主星 : 天机[陷][↑禄]\n│ ├辅星 : 地劫[平]\n│ ├小星 : 天刑[陷],寡宿[不]\n│ ├大限 : 95~104虚岁\n│ ├小限 : 1,13,25,37,49虚岁\n│ └流年 : 11,23,35,47,59虚岁\n\n├官禄宫[庚申][身宫]\n│ ├主星 : 紫微[旺],天府[得]\n│ ├辅星 : 无\n│ ├小星 : 无\n│ ├大限 : 85~94虚岁\n│ ├小限 : 2,14,26,38,50虚岁\n│ └流年 : 12,24,36,48,60虚岁\n\n├交友宫[辛酉]\n│ ├主星 : 太阴[旺][生年科][↑忌]\n│ ├辅星 : 无\n│ ├小星 : 天贵[庙],天伤[平],天哭[不]\n│ ├大限 : 75~84虚岁\n│ ├小限 : 3,15,27,39,51虚岁\n│ └流年 : 1,13,25,37,49虚岁\n\n├迁移宫[壬戌]\n│ ├主星 : 贪狼[庙][生年忌]\n│ ├辅星 : 无\n│ ├小星 : 封诰,天月,副旬[陷],天空[陷]\n│ ├大限 : 65~74虚岁\n│ ├小限 : 4,16,28,40,52虚岁\n│ └流年 : 2,14,26,38,50虚岁\n\n└疾厄宫[癸亥][来因]\n  ├主星 : 巨门[旺][生年权][↓权][↑忌]\n  ├辅星 : 陀罗[陷],火星[利],天马[平]\n  ├小星 : 天姚[陷],恩光[不],天使[旺],天厨,旬空[平],孤辰[陷],蜚廉\n  ├大限 : 55~64虚岁\n  ├小限 : 5,17,29,41,53虚岁\n  └流年 : 3,15,27,39,51虚岁';
+  showStatus('示例命盘已填入，点击「开始分析」');
+}
+
+// ========== 解析引擎 ==========
+function parseChart(text){
+  showDebug('开始解析...');
+  var res={};
+
+  // 基本信息
+  res.gender = text.indexOf('性别 : 男')>=0?'男':text.indexOf('性别 : 女')>=0?'女':'未知';
+  res.wuxing = (text.match(/五行局数[：: ]*([^\n]+)/)||['','土五局'])[1].trim();
+  res.mingZhu = (text.match(/命主[：: ]*([^\n;；]+)/)||['','廉贞'])[1].trim();
+  res.shenZhu = (text.match(/身主[：: ]*([^\n;；]+)/)||['','天同'])[1].trim();
+  res.douJun = (text.match(/子年斗君[：: ]*([^\n;；]+)/)||['',''])[1].trim();
+  var shengGongMatch = text.match(/身宫[：: ]*([^\n;；]+)/);
+  res.shenGong = shengGongMatch ? shengGongMatch[1].replace(/身宫[：:]/g,'').trim() : '申';
+
+  // 四柱：优先从"节气四柱"或"非节气四柱"行提取
+  var siZhu = text.match(/[^\n]*四柱[：: ]*([^\n]+)/);
+  if(siZhu){
+    var parts = siZhu[1].trim().split(/[\s　]+/);
+    if(parts.length >= 4){
+      res.bazi = [parts[0], parts[1], parts[2], parts[3]];
+    }
+  }
+  if(!res.bazi || res.bazi.length < 4){
+    res.bazi = [];
+    var ym = text.match(/年柱[：: ]*([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])/);
+    var mm = text.match(/月柱[：: ]*([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])/);
+    var dm = text.match(/日柱[：: ]*([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])/);
+    var hm = text.match(/时柱[：: ]*([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])/);
+    if(ym)res.bazi.push(ym[1]); if(mm)res.bazi.push(mm[1]);
+    if(dm)res.bazi.push(dm[1]); if(hm)res.bazi.push(hm[1]);
+  }
+  if(!res.bazi) res.bazi=['甲','子','丙','寅','戊','午','庚','辰'];
+
+  // 十二宫
+  res.palaces=[];
+  var gongList=['财帛','子女','夫妻','兄弟','命  宫','父母','福德','田宅','官禄','交友','迁移','疾厄'];
+  var nameMap={'财帛':'财帛','子女':'子女','夫妻':'夫妻','兄弟':'兄弟','命  宫':'命宫','父母':'父母','福德':'福德','田宅':'田宅','官禄':'官禄','交友':'交友','迁移':'迁移','疾厄':'疾厄'};
+  var remaining=text;
+  gongList.forEach(function(gname){
+    var idx=remaining.indexOf(gname);
+    if(idx<0)return;
+    var ni=-1;
+    var gIdx=gongList.indexOf(gname);
+    for(var j=gIdx+1;j<gongList.length;j++){
+      var found=remaining.indexOf(gongList[j],idx+1);
+      if(found>0 && (ni<0||found<ni))ni=found;
+    }
+    var block=ni>0?remaining.substring(idx,ni):remaining.substring(idx);
+    remaining=ni>0?remaining.substring(ni):'';
+
+    // 地支
+    var zm=block.match(/\[([甲乙丙丁戊己庚辛壬癸])([子丑寅卯辰巳午未申酉戌亥])\]/);
+    var tg=zm?zm[1]:'';
+    var dz=zm?zm[2]:'';
+
+    // 主星
+    var msMatch=block.match(/主星[：: ]*([^\n]+)/);
+    var msText=msMatch?msMatch[1].trim():'';
+    var stars=[];
+    var shengHua=[];
+    var ziHua=[];
+    MAIN_STARS.forEach(function(s){
+      if(msText.indexOf(s)>=0)stars.push(s);
+    });
+    if(msText.indexOf('生年禄')>=0)shengHua.push('生年禄');
+    if(msText.indexOf('生年权')>=0)shengHua.push('生年权');
+    if(msText.indexOf('生年科')>=0)shengHua.push('生年科');
+    if(msText.indexOf('生年忌')>=0)shengHua.push('生年忌');
+    if(msText.indexOf('↓'))ziHua.push('离心自化');
+    if(msText.indexOf('↑'))ziHua.push('向心自化');
+    var isShenGong=block.indexOf('身宫')>=0;
+    var isLaiYin=block.indexOf('来因')>=0;
+
+    // 辅星
+    var auxMatch=block.match(/辅星[：: ]*([^\n]+)/);
+    var aux=auxMatch?auxMatch[1].trim():'';
+    var sm2=block.match(/小星[：: ]*([^\n]+)/);
+    var small=sm2?sm2[1].trim():'';
+    var dxm=block.match(/大限[：: ]*([^\n]+)/);
+    var dx=dxm?dxm[1].trim():'';
+
+    var realName=nameMap[gname]||gname;
+    res.palaces.push({
+      name:realName,tg:tg,dz:dz,stars:stars,
+      msText:msText.replace(/\[.*?\]/g,'').trim(),
+      aux:aux,small:small,
+      shengHua:shengHua,ziHua:ziHua,
+      isShenGong:isShenGong,isLaiYin:isLaiYin,daXian:dx
+    });
+  });
+
+  showDebug('解析完成：'+res.palaces.length+'个宫位，四柱：'+res.bazi.join(''));
+  return res;
+}
+
+// ========== 分析主入口 ==========
+function safeAnalyze(){
+  try{
+    var text=document.getElementById('chartText').value.trim();
+    if(!text){alert('请先粘贴命盘文本');return;}
+    showDebug('开始分析...');
+    showStatus('解析中...');
+    var c=parseChart(text);
+    renderBasic(c);
+    renderXian(c);
+    renderGong(c);
+    renderHua(c);
+    renderDaXian(c);
+    renderSummary(c);
+    var ids=['outBasic','outXian','outGong','outHua','outDaXian','outSummary'];
+    ids.forEach(function(id){document.getElementById(id).classList.add('active');});
+    showStatus('分析完成！');
+    showDebug('');
+    window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+  }catch(e){
+    showDebug('错误：'+e.message+'\n'+e.stack);
+    showStatus('分析出错：'+e.message);
+    alert('分析出错：'+e.message+'\n\n请把下方的调试信息发给我。');
+  }
+}
+
+function renderBasic(c){
+  var h='';
+  h+='<b>性别：</b>'+c.gender+'　<b>五行局：</b>'+c.wuxing+'\n';
+  h+='<b>四柱：</b>'+c.bazi.join(' ')+'\n';
+  h+='<b>命主：</b>'+c.mingZhu+'　<b>身主：</b>'+c.shenZhu+'　<b>身宫：</b>'+c.shenGong+'　<b>子年斗君：</b>'+(c.douJun||'—')+'\n\n';
+  h+='<b>生年四化（'+c.bazi[0]+'年干）：</b>\n';
+  var hua=yearHua(c.bazi[0]);
+  h+='禄→<b>'+hua.禄+'</b>　权→<b>'+hua.权+'</b>　科→<b>'+hua.科+'</b>　忌→<b>'+hua.忌+'</b>\n';
+  document.getElementById('basicRes').innerHTML=h;
+}
+
+function renderXian(c){
+  var hua2=calcXian(c.bazi);
+  var yg=c.bazi[0];
+  var huaMap=yearHua(yg);
+  var h='';
+  h+='<div class="gua">先天卦：'+hua2.tianGua+'为'+(GUA_KE[hua2.tianGua]||'')+'</div>\n';
+  h+='<div class="gua" style="color:#5a3a1a">后天卦：'+hua2.diGua+'为'+(GUA_KE[hua2.diGua]||'')+'</div>\n\n';
+  h+='<b>天数：</b>'+hua2.t+' · 余'+hua2.tRemain+' → 先天卦 <b>'+hua2.tianGua+'</b>（'+GUA_KE[hua2.tianGua]+'）\n';
+  h+='<b>地数：</b>'+hua2.d+' · 余'+hua2.dRemain+' → 后天卦 <b>'+hua2.diGua+'</b>（'+GUA_KE[hua2.diGua]+'）\n\n';
+  var gname=hua2.tianGua+'为'+GUA_KE[hua2.tianGua];
+  var data=GUACI[gname]||{ming:'—',xian:['(请参照教材详批)'],hou:['(请参照教学带详批)'],liu:['(请结合大限流年参看)']};
+  h+='<b>【卦辞】</b>'+data.ming+'\n\n';
+  h+='<b>【先天卦象】</b>\n';
+  data.xian.forEach(function(s){h+='· '+s+'\n';});
+  h+='\n<b>【后天卦象】</b>\n';
+  data.hou.forEach(function(s){h+='· '+s+'\n';});
+  h+='\n<b>【流年值年卦】</b>\n';
+  data.liu.forEach(function(s){h+='· '+s+'\n';});
+  h+='\n<hr>\n<b>【生年四化·'+yg+'年干】</b>\n';
+  h+='禄：'+huaMap.禄+' · 权：'+huaMap.权+' · 科：'+huaMap.科+' · 忌：'+huaMap.忌+'\n';
+  document.getElementById('xianRes').innerHTML=h;
+}
+
+function renderGong(c){
+  var h='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">';
+  h+='<tr style="background:#f0e6d0;text-align:left"><th style="padding:5px;border:1px solid #d8c9a8">宫位</th><th style="padding:5px;border:1px solid #d8c9a8">主星</th><th style="padding:5px;border:1px solid #d8c9a8">辅星/小星</th><th style="padding:5px;border:1px solid #d8c9a8">特殊标记</th><th style="padding:5px;border:1px solid #d8c9a8">宫位象义</th></tr>';
+  c.palaces.forEach(function(p){
+    var specs=[];
+    if(p.isShenGong)specs.push('★身宫');
+    if(p.isLaiYin)specs.push('★来因');
+    p.shengHua.forEach(function(s){specs.push(s);});
+    p.ziHua.forEach(function(z){specs.push('自化'+z);});
+    h+='<tr><td style="padding:5px;border:1px solid #e8d9b8"><b style="color:#5a3a1a">'+p.name+'</b><br><small>'+p.tg+p.dz+'</small></td>';
+    h+='<td style="padding:5px;border:1px solid #e8d9b8">'+(p.msText||'—')+'</td>';
+    h+='<td style="padding:5px;border:1px solid #e8d9b8"><small>'+(p.aux||'—')+'</small><br><small>'+(p.small||'')+'</small></td>';
+    h+='<td style="padding:5px;border:1px solid #e8d9b8">'+(specs.join('<br>')||'—')+'</td>';
+    h+='<td style="padding:5px;border:1px solid #e8d9b8"><small>'+(TRAITS[p.name]||GONGZHI[p.name]||'')+'</small></td></tr>';
+  });
+  h+='</table>';
+  document.getElementById('gongRes').innerHTML=h;
+}
+
+var HUA_XIANG={
+  '禄':'化禄：财喜、食禄、缘分之至。A=C，物质不灭，占有论。',
+  '权':'化权：权势、掌控、可创造。主事在人。',
+  '科':'化科：声名、贵人、功名。文采清贵，不主财。',
+  '忌':'化忌：亏欠、业力、纠缠。忌入何宫，该宫即业障所在。'
+};
+
+function renderHua(c){
+  var yg=c.bazi[0];
+  var hua=yearHua(yg);
+  var h='<b>生年四化（'+yg+'年干）：落宫分析与心法</b>\n\n';
+
+  // 找每个四化星落在哪一宫
+  var huaGongMap={};
+  c.palaces.forEach(function(p){
+    p.stars.forEach(function(s){
+      if(s===hua.禄)huaGongMap['禄']=p.name;
+      if(s===hua.权)huaGongMap['权']=p.name;
+      if(s===hua.科)huaGongMap['科']=p.name;
+      if(s===hua.忌)huaGongMap['忌']=p.name;
+    });
+  });
+
+  ['禄','权','科','忌'].forEach(function(k){
+    h+='<b>'+k+' → '+hua[k]+'星</b>　落入 <b>'+(huaGongMap[k]||'—')+'</b>\n';
+    h+='   '+(HUA_XIANG[k]||'')+'　'+(huaGongMap[k]?'落入'+huaGongMap[k]+'，该宫即为吉凶所系。':'')+'\n\n';
+  });
+
+  var laiyin=c.palaces.find(function(p){return p.isLaiYin;});
+  h+='<b>倪海厦心法应用：</b>\n';
+  h+='· 大限走到四化星所在宫位，引动相应吉凶。\n';
+  h+='· 流年四化叠大限四化，再叠生年四化，三合而断。\n';
+  h+='· 自化（离心/向心）：定数中之变化，需看时空大限之差。\n';
+  h+='· 来因宫：'+(laiyin?laiyin.name:'疾厄宫')+'，生年四化所落宫位，是你此生的根本舞台。\n';
+  document.getElementById('huaRes').innerHTML=h;
+}
+
+function renderDaXian(c){
+  var allGongs=['命宫','兄弟','夫妻','子女','财帛','疾厄','迁移','交友','官禄','田宅','福德','父母'];
+  var list=allGongs.map(function(g){return c.palaces.find(function(p){return p.name===g;});}).filter(function(p){return p&&p.daXian;}).slice(0,8);
+  var h='';
+  h+='<b>以下按宫位顺序列出前8个大限的流年关键事件推演：</b>\n\n';
+
+  list.forEach(function(p,idx){
+    var m=p.daXian.match(/(\d+)~(\d+)虚岁/);
+    if(!m)return;
+    var sa=parseInt(m[1]),ea=parseInt(m[2]);
+    h+='<b>【第'+(idx+1)+'大限 · '+p.name+' · '+sa+'~'+ea+'虚岁】</b>\n';
+    h+='主星：'+(p.msText||'—')+'\n';
+    h+='格局：'+(TRAITS[p.name]||GONGZHI[p.name]||'—')+'\n';
+
+    // 生年四化叠入
+    var yg=c.bazi[0];
+    var hua=yearHua(yg);
+    var hTypes=[];
+    if(p.stars.indexOf(hua.禄)>=0)hTypes.push('禄');
+    if(p.stars.indexOf(hua.权)>=0)hTypes.push('权');
+    if(p.stars.indexOf(hua.科)>=0)hTypes.push('科');
+    if(p.stars.indexOf(hua.忌)>=0)hTypes.push('忌');
+    if(hTypes.length){
+      h+='<b class="good">生年四化叠入：'+hTypes.join('、')+'</b>\n';
+    }
+
+    // 流年推演
+    var lm=p.daXian.match(/流年[：: ]*([^\n]+)/);
+    if(lm){
+      var yrs=lm[1].match(/\d+/g);
+      if(yrs){
+        var keyYrs=yrs.filter(function(yr){
+          var a=parseInt(yr);
+          return a%5===0||[7,8,9].indexOf(a%10)>=0;
+        });
+        if(keyYrs.length){
+          h+='<b>关键流年：</b>';
+          keyYrs.forEach(function(yr){
+            var a=parseInt(yr);
+            var desc=getYearDesc(a,p.name,c);
+            h+='<span class="good">'+a+'虚岁</span>('+desc+') ';
+          });
+          h+='\n';
+        }
+      }
+    }
+    h+='\n';
+    if(idx<list.length-1)h+='<hr>\n';
+  });
+  document.getElementById('daXianRes').innerHTML=h;
+}
+
+function getYearDesc(age,gong,c){
+  var d=[];
+  var p=c.palaces.find(function(p){return p.name===gong;});
+  var hua=yearHua(c.bazi[0]);
+  var hs=[];
+  if(p) p.stars.forEach(function(s){if(s===hua.禄)hs.push('禄');if(s===hua.权)hs.push('权');if(s===hua.科)hs.push('科');if(s===hua.忌)hs.push('忌');});
+
+  if(gong==='疾厄'&&[27,28,29,39,40,41,51,52,53].indexOf(age)>=0)d.push('健康波动');
+  if(gong==='迁移'&&[26,27,38,39,50,51].indexOf(age)>=0)d.push('出外变动');
+  if(gong==='官禄'&&[24,36,48].indexOf(age)>=0)d.push('事业关键');
+  if(gong==='财帛'&&[28,40,52].indexOf(age)>=0)d.push('财运波动');
+  if(gong==='夫妻'&&[26,30,32,38,42,44].indexOf(age)>=0)d.push('感情波动');
+  if(gong==='福德'&&age%12===0)d.push('精神转折');
+  if(hs.indexOf('忌')>=0)d.push('防忌星扰');
+  if(hs.indexOf('禄')>=0)d.push('财运亨通');
+  if(hs.indexOf('权')>=0)d.push('权势提升');
+  if(hs.indexOf('科')>=0)d.push('声名远播');
+  if(d.length===0)d.push('平稳过渡');
+  return d.join('；');
+}
+
+// 卦辞库
+var GUACI={
+  '乾为天':{ming:'元亨利贞',xian:['生带禄，聪慧异禀。','无形之中贵气生于天。'],hou:['官带加身，声名远播。','父母双全，家世显赫。'],liu:['好事多磨，渐入佳境。','连动三，逢马/马姓需慎。']},
+  '坤为地':{ming:'元亨利牝马之贞',xian:['厚德载物，母仪天下之相。','性谦厚，不重名利。'],hou:['官带入命，宜辅不宜主。','陈官人贪禄成灾。'],liu:['逢马相克事不成。','猴年事竟成。']},
+  '水雷屯':{ming:'元亨利贞，勿用有攸往',xian:['个性迷蒙，早年困顿。','慧镜生尘。'],hou:['官运亨通，文书纠纷。','位高无权，宜参谋顾问。']},
+  '离为火':{ming:'元亨利贞，重明以丽乎正',xian:['聪明果断，有领导气质。','性急刚烈，易得罪人。'],hou:['文明之象，文化成就非凡。','从事文化、教育、传媒大吉。'],liu:['逢文明年高中，贵人临门。']},
+  '兑为泽':{ming:'元亨利，和悦以遇人',xian:['和悦待人，人缘极佳。','喜交际，善言辞。'],hou:['口才谋生，以和为贵。','从事销售、谈判、演艺得利。'],liu:['和气生财，但防口舌是非。']},
+  '火泽睽':{ming:'小事吉',xian:['睽违之象，建议以柔顺合作方式处理事务。','强攻反招睽违。'],hou:['小事可成，大事需缓。','宜退让合作，不宜孤军奋战。'],liu:['以柔克刚，小事成大事缓。']},
+  '泽天夬':{ming:'扬于王庭，孚号有厉',xian:['果断决绝，善于把握时机。','果决刚毅，利于开创。'],hou:['开创新局，声名鹊起。','但需防刚愎自用，损人害己。'],liu:['果决之年，但防小人反扑。']}
+};
+
+function renderSummary(c){
+  var laiyin=c.palaces.find(function(p){return p.isLaiYin;});
+  var shengGong=c.palaces.find(function(p){return p.name==='官禄';});
+  var minggong=c.palaces.find(function(p){return p.name==='命宫';});
+  var yg=c.bazi[0];
+
+  var h='';
+  h+='<b>命格核心</b>\n';
+  h+='此为「晚成之命」。武曲化忌入命带来先天对金钱的敏锐与焦虑，紫府身宫带来后天的成功野心，';
+  h+=('而'+(laiyin?laiyin.name:'疾厄宫')+'巨门来因则是贯穿一生的灵魂课题。\n\n');
+
+  h+='<b>十年大运节奏</b>\n';
+  h+='· 5-24岁（命/兄弟宫）：求学成长期，孤独求进，打好基础\n';
+  h+='· 25-44岁（夫妻/子女宫）：成家立业期，婚姻波动+子女诞生，事业起步\n';
+  h+='· 45-64岁（财帛/疾厄宫）：黄金二十年，事业巅峰+中年健康保卫战\n';
+  h+='· 65岁后：宜静养，不宜冒险\n\n';
+
+  h+='<b>五行调理建议</b>\n';
+  h+='· 命局属金（武曲）+土（土五局），金过旺克木\n';
+  h+='· 补木：多接触绿色、东方、木质，从事文化/教育/出版\n';
+  h+='· 泄金：加强水属性（黑色、北方、流动活动）\n';
+  h+='· 避免：过多金属性活动（高风险投资、武器）\n\n';
+
+  h+='<b>心理调适</b>\n';
+  h+='· 核心心法：「舍得」——武化忌+离心自化的终极解法是学会放下\n';
+  h+='· 情绪出口：巨门权忌=表达欲强，建议写日记、练书法、学演讲\n';
+  h+='· 化解：每日静坐诵《心经》或《金刚经》，有助化解郁结之气\n\n';
+
+  h+='<hr>\n<b>⚠️ 以上分析仅供学习研究或娱乐目的使用，不构成任何决策依据。命理推演具有主观性，具体人生选择请结合实际情况理性判断。</b>\n';
+  document.getElementById('summaryRes').innerHTML=h;
+}
+</script>
+</body>
+</html>
